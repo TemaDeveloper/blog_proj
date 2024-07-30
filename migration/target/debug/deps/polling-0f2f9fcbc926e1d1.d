@@ -1,0 +1,10 @@
+/Users/artemijfridriksen/projects/blog_test/blog_proj/migration/target/debug/deps/libpolling-0f2f9fcbc926e1d1.rmeta: /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/lib.rs /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/os.rs /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/os/kqueue.rs /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/kqueue.rs
+
+/Users/artemijfridriksen/projects/blog_test/blog_proj/migration/target/debug/deps/libpolling-0f2f9fcbc926e1d1.rlib: /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/lib.rs /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/os.rs /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/os/kqueue.rs /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/kqueue.rs
+
+/Users/artemijfridriksen/projects/blog_test/blog_proj/migration/target/debug/deps/polling-0f2f9fcbc926e1d1.d: /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/lib.rs /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/os.rs /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/os/kqueue.rs /Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/kqueue.rs
+
+/Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/lib.rs:
+/Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/os.rs:
+/Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/os/kqueue.rs:
+/Users/artemijfridriksen/.cargo/registry/src/index.crates.io-6f17d22bba15001f/polling-2.8.0/src/kqueue.rs:

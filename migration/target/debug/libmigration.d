@@ -1,0 +1,1 @@
+/Users/artemijfridriksen/projects/blog_test/blog_proj/migration/target/debug/libmigration.rlib: /Users/artemijfridriksen/projects/blog_test/blog_proj/migration/src/lib.rs /Users/artemijfridriksen/projects/blog_test/blog_proj/migration/src/m20220101_000001_create_table.rs /Users/artemijfridriksen/projects/blog_test/blog_proj/migration/src/m20240730_022807_create_table_blog.rs

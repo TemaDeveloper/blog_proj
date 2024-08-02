@@ -15,7 +15,6 @@ use oauth2::{
     CsrfToken, Scope, basic::BasicClient, TokenResponse
 };
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait};
-use dotenv::dotenv;
 use tokio::sync::Mutex;
 use std::collections::HashMap;
 use std::env;

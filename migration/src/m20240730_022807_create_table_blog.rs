@@ -21,6 +21,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Blog::Title).string().not_null())
                     .col(ColumnDef::new(Blog::Content).string().not_null())
+                    .col(ColumnDef::new(Blog::Image).string().not_null())
                     .col(ColumnDef::new(Blog::CreatedAt)
                         .timestamp_with_time_zone()
                         .not_null()
@@ -54,6 +55,7 @@ enum Blog {
     Title,
     Content,
     CreatedAt,
+    Image,
 }
 
 

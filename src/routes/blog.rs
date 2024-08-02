@@ -8,18 +8,21 @@ use axum::{
     Extension,
 };
 use entity::blog;
+
 use crate::models::blog_model::{GetAllBlogsModel, GetBlogModel, UpdateBlogModel, CreateBlogModel};
 use sea_orm::{ActiveModelTrait, ActiveValue, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::sync::Arc;
 
+
 pub fn blog_routes(db: Arc<DatabaseConnection>) -> Router {
     Router::new()
-        .route("/blog/insert", post(create_blog).layer(Extension(db.clone())))
-        .route("/blog/update/:id", put(update_blog).layer(Extension(db.clone())))
-        .route("/blog/delete/:id", delete(delete_blog).layer(Extension(db.clone())))
-        .route("/blog/:id", get(get_blog).layer(Extension(db.clone())))
-        .route("/blogs", get(get_all_blogs).layer(Extension(db.clone())))
-        .route("/blogs/user/:id", get(get_all_user_blogs).layer(Extension(db)))
+        .route("/blog/insert", post(create_blog))
+        .route("/blog/update/:id", put(update_blog))
+        .route("/blog/delete/:id", delete(delete_blog))
+        .route("/blog/:id", get(get_blog))
+        .route("/blogs", get(get_all_blogs))
+        .route("/blogs/user/:id", get(get_all_user_blogs))
+        .layer(Extension(db))
 }
 
 async fn get_all_user_blogs(
@@ -156,10 +159,8 @@ async fn create_blog(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     blog_data: Json<CreateBlogModel>, 
 ) -> impl IntoResponse {
-   
-    //dotenv().ok();
-    //let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    //let db_conn = Database::connect(&db_url).await.unwrap();
+
+    //* Refactored :) */
 
     // if the user's id (PRIMARY KEY) == user_id that is given as argument => insert the new blog
 
@@ -188,4 +189,5 @@ async fn create_blog(
         return (StatusCode::FORBIDDEN, "You have no rights".to_string());
     }
 }
+
 

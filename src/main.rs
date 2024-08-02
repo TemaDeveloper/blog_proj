@@ -5,8 +5,6 @@ use blog_proj::run;
 use dotenv::dotenv;
 use sea_orm::Database;
 
-//mod routes;
-//TODO: Refactor Code
 
 #[tokio::main]
 async fn main(){

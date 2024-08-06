@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
 use axum::Router;
-use sea_orm::DatabaseConnection;
-
-
+use migration::sea_orm::DatabaseConnection;
 
 pub mod user;
 pub mod blog;

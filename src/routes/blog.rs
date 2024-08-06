@@ -1,18 +1,16 @@
+use crate::models::blog_model::{CreateBlogModel, GetAllBlogsModel, GetBlogModel, UpdateBlogModel};
 use axum::extract::Path;
 use axum::routing::{delete, get};
 use axum::{
     http::StatusCode,
     response::IntoResponse,
     routing::{post, put},
-    Json, Router,
-    Extension,
+    Extension, Json, Router,
 };
-use entity::blog;
-
-use crate::models::blog_model::{GetAllBlogsModel, GetBlogModel, UpdateBlogModel, CreateBlogModel};
-use sea_orm::{ActiveModelTrait, ActiveValue, ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use entity::{blog, user};
+use migration::sea_orm::ColumnTrait;
+use migration::sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, Set};
 use std::sync::Arc;
-
 
 pub fn blog_routes(db: Arc<DatabaseConnection>) -> Router {
     Router::new()
@@ -26,12 +24,11 @@ pub fn blog_routes(db: Arc<DatabaseConnection>) -> Router {
 }
 
 async fn get_all_user_blogs(
-    Path(id): Path<i32>, 
-    Extension(db) : Extension<Arc<DatabaseConnection>>,
+    Path(id): Path<i32>,
+    Extension(db): Extension<Arc<DatabaseConnection>>,
 ) -> impl IntoResponse {
-
     let blogs = entity::blog::Entity::find()
-        .filter(entity::blog::Column::UserId.eq(id))
+        .filter(blog::Column::UserId.eq(id))
         .all(db.as_ref())
         .await;
 
@@ -54,11 +51,7 @@ async fn get_all_user_blogs(
     }
 }
 
-
-async fn get_all_blogs(
-    Extension(db) : Extension<Arc<DatabaseConnection>>
-) -> impl IntoResponse {
-    
+async fn get_all_blogs(Extension(db): Extension<Arc<DatabaseConnection>>) -> impl IntoResponse {
     //extract all blogs from db
     let blogs = entity::blog::Entity::find().all(db.as_ref()).await;
 
@@ -85,9 +78,10 @@ async fn get_all_blogs(
     }
 }
 
-async fn get_blog(Path(id): Path<i32>, Extension(db) : Extension<Arc<DatabaseConnection>>) -> impl IntoResponse {
-
-
+async fn get_blog(
+    Path(id): Path<i32>,
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+) -> impl IntoResponse {
     let blog = entity::blog::Entity::find()
         .filter(entity::blog::Column::Id.eq(id))
         .one(db.as_ref())
@@ -106,11 +100,11 @@ async fn get_blog(Path(id): Path<i32>, Extension(db) : Extension<Arc<DatabaseCon
     )
 }
 
-
 //delete blog by its id
-async fn delete_blog(Path(id): Path<i32>, Extension(db): Extension<Arc<DatabaseConnection>>) -> impl IntoResponse {
-    
-
+async fn delete_blog(
+    Path(id): Path<i32>,
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+) -> impl IntoResponse {
     let blog = entity::blog::Entity::find()
         .filter(entity::blog::Column::Id.eq(id))
         .one(db.as_ref())
@@ -128,13 +122,11 @@ async fn delete_blog(Path(id): Path<i32>, Extension(db): Extension<Arc<DatabaseC
     (StatusCode::ACCEPTED, "Deleted")
 }
 
-
 async fn update_blog(
     Path(id): Path<i32>,
     Extension(db): Extension<Arc<DatabaseConnection>>,
     Json(blog_data): Json<UpdateBlogModel>,
 ) -> impl IntoResponse {
-    
     //dotenv().ok();
     //let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     //let db_conn = Database::connect(&db_url).await.unwrap();
@@ -150,44 +142,62 @@ async fn update_blog(
     blog.title = Set(blog_data.title);
     blog.content = Set(blog_data.content);
 
-    blog.update(db.as_ref()).await.unwrap();
+    blog::Entity::update(blog).exec(db.as_ref()).await.unwrap();
 
     (StatusCode::ACCEPTED, "Updated")
 }
 
 async fn create_blog(
     Extension(db): Extension<Arc<DatabaseConnection>>,
-    blog_data: Json<CreateBlogModel>, 
+    blog_data: Json<CreateBlogModel>,
 ) -> impl IntoResponse {
-
     //* Refactored :) */
-
     // if the user's id (PRIMARY KEY) == user_id that is given as argument => insert the new blog
-
-    if entity::user::Entity::find()
-        .filter(Condition::all().add(entity::user::Column::Id.eq(blog_data.user_id)))
+    // Check if user exists
+    match user::Entity::find()
+        .filter(user::Column::Id.eq(blog_data.user_id))
         .one(db.as_ref())
         .await
-        .unwrap()
-        .is_some()
     {
-        // if the column id == user_id and there is a found model of this user then insert
+        Ok(Some(user)) => {
+            println!("User found: {:?}", user);
 
-        let blog_model = blog::ActiveModel {
-            title: ActiveValue::Set(blog_data.title.to_owned()),
-            content: ActiveValue::Set(blog_data.content.to_owned()),
-            user_id: ActiveValue::Set(blog_data.user_id.to_owned()),
-            ..Default::default()
-        };
+            // User exists, insert blog
+            let blog_model = blog::ActiveModel {
+                title: Set(blog_data.title.to_owned()),
+                content: Set(blog_data.content.to_owned()),
+                user_id: Set(blog_data.user_id),
+                image: Set("image/file route".to_string()),
+                ..Default::default()
+            };
 
-        //insertion to DB
-        blog_model.clone().insert(db.as_ref()).await.unwrap();
-
-        //db_conn.close().await.unwrap();
-        return (StatusCode::CREATED, format!("{:?}", blog_model));
-    } else {
-        return (StatusCode::FORBIDDEN, "You have no rights".to_string());
+            // Insertion to DB
+            match blog::Entity::insert(blog_model.clone())
+                .exec(db.as_ref())
+                .await
+            {
+                Ok(_) => (StatusCode::CREATED, format!("{:?}", blog_model)).into_response(),
+                Err(e) => {
+                    eprintln!("Database insertion error: {:?}", e);
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Failed to insert blog".to_string(),
+                    )
+                        .into_response()
+                }
+            }
+        }
+        Ok(None) => {
+            // User not found
+            (StatusCode::FORBIDDEN, "You have no rights".to_string()).into_response()
+        }
+        Err(e) => {
+            eprintln!("Database query error: {:?}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to query user".to_string(),
+            )
+                .into_response()
+        }
     }
 }
-
-

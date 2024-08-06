@@ -9,12 +9,13 @@ use axum::{
     Json, Router,
 };
 use entity::user;
+use migration::sea_orm::{DatabaseConnection, EntityTrait, Set};
 use models::user_models::{GetAllUsersModel, UserModelPub, CreateUserModel};
+
 use oauth2::{
     AuthorizationCode, ClientId, ClientSecret, AuthUrl, TokenUrl, RedirectUrl,
     CsrfToken, Scope, basic::BasicClient, TokenResponse
 };
-use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait};
 use tokio::sync::Mutex;
 use std::collections::HashMap;
 use std::env;
@@ -70,16 +71,17 @@ async fn create_user(Extension(db): Extension<Arc<DatabaseConnection>>, user_dat
 
 
     let user_model = user::ActiveModel {
-        name: ActiveValue::Set(user_data.name.to_owned()),
-        email: ActiveValue::Set(user_data.email.to_owned()),
-        password: ActiveValue::Set(user_data.password.to_owned()),
-        uuid: ActiveValue::Set(Uuid::new_v4()),
+        name: Set(user_data.name.to_owned()),
+        email: Set(user_data.email.to_owned()),
+        password: Set(user_data.password.to_owned()),
+        uuid: Set(Uuid::new_v4()),
         ..Default::default()
     };
 
-    user_model.clone().insert(db.as_ref()).await.unwrap();
+    user::Entity::insert(user_model.clone()).exec(db.as_ref()).await.unwrap();
 
-    (StatusCode::ACCEPTED, format!("{:?}", user_model.uuid))
+
+    (StatusCode::CREATED, format!("{:?}", user_model.uuid))
 }
 
 //TODO: Upload Image 
@@ -91,7 +93,7 @@ async fn create_user(Extension(db): Extension<Arc<DatabaseConnection>>, user_dat
 async fn auth(Extension(oauth_client): Extension<Arc<Mutex<BasicClient>>>) -> impl IntoResponse {
     let (auth_url, csrf_token) = oauth_client.lock().await
         .authorize_url(CsrfToken::new_random)
-        .add_scope(Scope::new("https://www.googleapis.com/auth/userinfo.email".to_string()))
+        .add_scope(Scope::new("https://www.googleapis.com/auth/userinfo.profile".to_string()))
         .url();
 
     println!("CSRF token: {}", csrf_token.secret());
@@ -112,6 +114,7 @@ async fn redirect_auth(
             .request_async(oauth2::reqwest::async_http_client)
             .await;
 
+    
         match token_result {
             Ok(token) => {
                 let access_token = token.access_token();
@@ -123,6 +126,7 @@ async fn redirect_auth(
                 Html("Failed to exchange code".to_string())
             }
         }
+
     } else {
         // Log if the code is missing
         println!("Missing code parameter");

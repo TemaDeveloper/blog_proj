@@ -3,7 +3,7 @@ use std::{env, sync::Arc};
 
 use blog_proj::run;
 use dotenv::dotenv;
-use sea_orm::Database;
+use migration::sea_orm::Database;
 
 
 #[tokio::main]

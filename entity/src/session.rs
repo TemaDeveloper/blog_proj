@@ -9,12 +9,11 @@ pub struct Model {
     pub session_id: Uuid,
     #[sea_orm(unique)]
     pub access_token: String,
-    #[sea_orm(unique)]
     pub refresh_token: String,
-    pub data: String,
+    pub data: Option<String>,
     pub expires_at: DateTimeWithTimeZone,
     #[sea_orm(unique)]
-    pub csfr_token: Uuid,
+    pub csfr_token: String,
     pub user_id: i32,
 }
 

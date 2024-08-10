@@ -1,11 +1,24 @@
+use axum::body::Body;
 use axum::extract::Query;
+use axum::http::HeaderMap;
 use axum::response::{Html, Redirect};
 use axum::routing::get;
 use axum::Extension;
-use axum::{http::StatusCode, response::IntoResponse, routing::post, Json, Router};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    routing::post,
+    Json, Router,
+};
+
+use axum_extra::headers;
+use axum_extra::TypedHeader;
+
+use chrono::{Duration, Utc};
 use entity::user;
 use migration::sea_orm::{Database, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use models::user_models::{CreateUserModel, GetAllUsersModel, UserModelPub};
+use reqwest::header;
 
 use crate::models;
 use dotenv::dotenv;
@@ -14,7 +27,6 @@ use oauth2::{
     basic::BasicClient, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl,
     Scope, TokenResponse, TokenUrl,
 };
-use std::any::Any;
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
@@ -28,8 +40,9 @@ pub fn user_routes(db: Arc<DatabaseConnection>) -> Router {
     Router::new()
         .route("/users", get(get_all_users))
         .route("/user/insert", post(create_user))
-        .route("/privacy", get( || async {"Privacy Policy"}))
-        .route("/tos", get( || async {"TOS"}))
+        .route("/privacy", get(|| async { "Privacy Policy" }))
+        .route("/tos", get(|| async { "TOS" }))
+        .route("/logout", get(logout))
         .layer(Extension(db))
         .merge(auth_user_routes())
 }
@@ -39,7 +52,21 @@ pub fn auth_user_routes() -> Router {
     Router::new()
         .route("/auth", get(auth))
         .route("/redirect", get(redirect_auth))
+        .route("/dashboard", get(dashboard))
+        .route("/login", get(|| async { "Login Page" }))
         .layer(Extension(oauth_client))
+}
+
+async fn dashboard() -> impl IntoResponse {
+    Html(
+        r#"
+    <form action="http://localhost:3010/logout">
+        <input type="submit" value="Logout" />
+    </form>
+"#
+        .to_string(),
+    )
+    .into_response()
 }
 
 async fn get_all_users(Extension(db): Extension<Arc<DatabaseConnection>>) -> impl IntoResponse {
@@ -85,14 +112,59 @@ async fn create_user(
 
 //TODO: Add OAuth2.0, store sessions in DB, add feature of Google log in
 
-async fn auth(Extension(oauth_client): Extension<Arc<Mutex<BasicClient>>>) -> impl IntoResponse {
+async fn auth(
+    Extension(oauth_client): Extension<Arc<Mutex<BasicClient>>>,
+    cookie_header: Option<TypedHeader<headers::Cookie>>,
+) -> impl IntoResponse {
+    // Connect to the database
+    dotenv().ok();
+    let db = env::var("DATABASE_URL").expect("Failed to load db");
+    let db_conn = Database::connect(&db).await.unwrap();
+    // Check for an existing session
+    if let Some(TypedHeader(ref cookie)) = cookie_header {
+        println!("Cookie header found: {:?}", cookie_header);
+        println!("Cookie content: {:?}", cookie);
+
+        if let Some(session_id) = cookie.get("session_id") {
+            println!("Session ID found in cookie: {}", session_id);
+
+            // Attempt to convert the session_id to a UUID
+            let session_uuid = match Uuid::parse_str(session_id) {
+                Ok(uuid) => uuid,
+                Err(err) => {
+                    println!("Failed to parse session_id as UUID: {}", err);
+                    return Html("Invalid session ID format.".to_string()).into_response();
+                }
+            };
+
+            // Query the database for the session
+            let query = entity::session::Entity::find()
+                .filter(entity::session::Column::SessionId.eq(session_uuid))
+                .one(&db_conn)
+                .await;
+
+            println!("Query result: {:?}", query);
+
+            if let Ok(Some(_session)) = query {
+                println!("Session found in database: {:?}", _session);
+                // Session is valid, proceed without re-authenticating
+                return Redirect::temporary("/dashboard").into_response();
+            } else {
+                println!("Session not found in the database or query failed.");
+            }
+        } else {
+            println!("Session ID not found in the cookie.");
+        }
+    } else {
+        println!("No cookie header found.");
+    }
+
+    // Generate the OAuth authorization URL and CSRF token
     let (auth_url, csrf_token) = oauth_client
         .lock()
         .await
         .authorize_url(CsrfToken::new_random)
-        .add_scope(Scope::new(
-            "openid".to_string()
-        ))
+        .add_scope(Scope::new("openid".to_string()))
         .add_scope(Scope::new(
             "https://www.googleapis.com/auth/userinfo.email".to_string(),
         ))
@@ -103,7 +175,9 @@ async fn auth(Extension(oauth_client): Extension<Arc<Mutex<BasicClient>>>) -> im
 
     println!("CSRF token: {}", csrf_token.secret());
     println!("Authorization URL: {}", auth_url);
-    Redirect::temporary(&auth_url.to_string())
+
+    // If session is not found or is invalid, redirect to the OAuth authorization URL
+    Redirect::temporary(&auth_url.to_string()).into_response()
 }
 
 async fn redirect_auth(
@@ -111,6 +185,26 @@ async fn redirect_auth(
     Extension(oauth_client): Extension<Arc<Mutex<BasicClient>>>,
 ) -> impl IntoResponse {
     println!("Received query parameters: {:?}", params);
+
+    dotenv().ok();
+    let db = env::var("DATABASE_URL").expect("Failed to load db");
+    let db_conn = Database::connect(&db).await.unwrap();
+
+    // Extract CSRF token (state parameter) from the OAuth provider response
+    let state_param = params.get("state").map(|s| s.to_string());
+
+    // Validate the CSRF token
+    if let Some(ref state_param) = state_param {
+        let csrf_token = CsrfToken::new(state_param.clone());
+        // Optionally compare this with a stored value or handle it securely
+
+        println!("Received CSRF token: {}", csrf_token.clone().secret());
+
+        // Continue with your authentication logic
+    } else {
+        // Missing CSRF token in the OAuth response
+        return Html("Missing CSRF token".to_string()).into_response();
+    }
 
     if let Some(code) = params.get("code") {
         let token_result = oauth_client
@@ -123,12 +217,11 @@ async fn redirect_auth(
         match token_result {
             Ok(token) => {
                 let access_token = token.access_token().secret();
-                let refresh_token = token.refresh_token().unwrap().secret();
-                
-                
+                //let refresh_token = token.refresh_token().unwrap().secret();
 
                 // Use Bearer token in the Authorization header
-                let url = "https://www.googleapis.com/oauth2/v2/userinfo?oauth_token=".to_owned() + access_token;
+                let url = "https://www.googleapis.com/oauth2/v2/userinfo?oauth_token=".to_owned()
+                    + access_token;
 
                 println!("Access Token: {:?}", access_token);
 
@@ -158,12 +251,8 @@ async fn redirect_auth(
                         .unwrap();
 
                     if !verified_email {
-                        return Html("Email is not verified.".to_string());
+                        return Html("Email is not verified.".to_string()).into_response();
                     }
-
-                    dotenv().ok();
-                    let db = env::var("DATABASE_URL").expect("Failed to load db");
-                    let db_conn = Database::connect(&db).await.unwrap();
 
                     let query = entity::user::Entity::find()
                         .filter(entity::user::Column::Email.eq(email.clone()))
@@ -172,25 +261,85 @@ async fn redirect_auth(
 
                     match query {
                         Ok(Some(user)) => {
-                            Html(format!("User found: {:?}", user))
-                            
-                        
-                        },
-                        Ok(None) => Html("User not found".to_string()),
-                        Err(err) => Html(format!("Database query failed: {:?}", err)),
+                            //TODO: add all necessary fields into the sessions table.
+
+                            let session_id = Uuid::new_v4();
+                            let expires_at_val = Utc::now() + Duration::hours(1);
+
+                            let new_session = entity::session::ActiveModel {
+                                session_id: Set(session_id.clone()),
+                                user_id: Set(user.id),
+                                access_token: Set(access_token.clone()),
+                                refresh_token: Set("".to_string()),
+                                expires_at: Set(expires_at_val.into()),
+                                csfr_token: Set(state_param.unwrap_or_else(|| "".to_string())), // Store the CSRF token in the session
+                                ..Default::default()
+                            };
+
+                            entity::session::Entity::insert(new_session)
+                                .exec(&db_conn)
+                                .await
+                                .expect("Failed to insert session");
+
+                            //TODO: add session_id, access_token, refresh_token to Cookies
+                            let mut headers = HeaderMap::new();
+                            headers.insert(
+                                header::SET_COOKIE,
+                                format!(
+                                    "session_id={}; HttpOnly; Secure; SameSite=Strict",
+                                    session_id
+                                )
+                                .parse()
+                                .unwrap(),
+                            );
+                            // Include the Authorization header with the Bearer token
+                            headers.insert(
+                                header::AUTHORIZATION,
+                                format!("Bearer {}", session_id).parse().unwrap(),
+                            );
+
+                            Response::builder()
+                                .status(StatusCode::OK)
+                                .header(header::AUTHORIZATION, format!("Bearer {}", session_id))
+                                .header(
+                                    header::SET_COOKIE,
+                                    format!(
+                                        "session_id={}; HttpOnly; Secure; SameSite=Strict",
+                                        session_id
+                                    ),
+                                )
+                                .body(Body::from(
+                                    r#"
+                            <html>
+                            <head>
+                                <meta http-equiv="refresh" content="0; url=/dashboard" />
+                            </head>
+                            <body>
+                                User authenticated. Redirecting...
+                            </body>
+                            </html>
+                        "#,
+                                ))
+                                .unwrap()
+                                .into_response()
+                        }
+                        Ok(None) => Html("User not found".to_string()).into_response(),
+                        Err(err) => {
+                            Html(format!("Database query failed: {:?}", err)).into_response()
+                        }
                     }
                 } else {
-                    Html("Failed to parse email from userinfo response".to_string())
+                    Html("Failed to parse email from userinfo response".to_string()).into_response()
                 }
             }
             Err(err) => {
                 eprintln!("Failed to exchange code: {:?}", err);
-                Html("Failed to exchange code".to_string())
+                Html("Failed to exchange code".to_string()).into_response()
             }
         }
     } else {
         println!("Missing code parameter");
-        Html("Missing code".to_string())
+        Html("Missing code".to_string()).into_response()
     }
 }
 
@@ -213,3 +362,65 @@ fn create_oauth_client() -> Arc<Mutex<BasicClient>> {
 }
 
 //TODO: Add log out
+async fn logout(
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+    cookie_header: Option<TypedHeader<headers::Cookie>>,
+) -> impl IntoResponse {
+    // Check for an existing session
+    if let Some(TypedHeader(ref cookie)) = cookie_header {
+        println!("Cookie header found: {:?}", cookie_header);
+        println!("Cookie content: {:?}", cookie);
+        if let Some(session_id) = cookie.get("session_id") {
+            println!("Session ID found in cookie: {}", session_id);
+
+            // Attempt to convert the session_id to a UUID
+            let session_uuid = match Uuid::parse_str(session_id) {
+                Ok(uuid) => uuid,
+                Err(err) => {
+                    println!("Failed to parse session_id as UUID: {}", err);
+                    return Html("Invalid session ID format.".to_string()).into_response();
+                }
+            };
+
+            // Delete the session from the database
+            let result = entity::session::Entity::delete_by_id(session_uuid)
+                .exec(db.as_ref())
+                .await;
+
+            match result {
+                Ok(delete_result) => {
+                    if delete_result.rows_affected > 0 {
+                        println!("Session successfully deleted from the database.");
+                    } else {
+                        println!("No session found with the given session_id.");
+                    }
+                }
+                Err(err) => {
+                    println!("Error deleting session from database: {:?}", err);
+                    return Html("Failed to delete session.".to_string()).into_response();
+                }
+            }
+
+            // Clear the session cookie by setting it with an expiration in the past
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                header::SET_COOKIE,
+                "session_id=deleted; HttpOnly; Secure; SameSite=Strict; Max-Age=0"
+                    .parse()
+                    .unwrap(),
+            );
+
+            println!("Session cookie cleared and user will be redirected to login.");
+
+            return (headers, Redirect::temporary("/login")).into_response();
+        } else {
+            println!("Session ID not found in the cookie.");
+        }
+    } else {
+        println!("No cookie header found.");
+    }
+
+    // If no session ID was found or no cookie was present, redirect to the login page
+    println!("Redirecting to login as no valid session or cookie was found.");
+    Redirect::temporary("/login").into_response()
+}

@@ -20,10 +20,10 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(Session::AccessToken).unique_key().string().not_null())
-                    .col(ColumnDef::new(Session::RefreshToken).string().unique_key().not_null())
+                    .col(ColumnDef::new(Session::RefreshToken).string().not_null())
                     .col(ColumnDef::new(Session::Data).string())
                     .col(ColumnDef::new(Session::ExpiresAt).timestamp_with_time_zone().not_null())
-                    .col(ColumnDef::new(Session::CSFRToken).uuid().unique_key().not_null())
+                    .col(ColumnDef::new(Session::CSFRToken).string().unique_key().not_null())
                     .col(ColumnDef::new(Session::UserID).integer().not_null()).foreign_key(
                         ForeignKey::create()
                             .name("fk-session-user_id")

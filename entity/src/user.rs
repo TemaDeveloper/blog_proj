@@ -10,7 +10,6 @@ pub struct Model {
     pub name: String,
     #[sea_orm(unique)]
     pub email: String,
-    pub password: String,
     #[sea_orm(unique)]
     pub uuid: Uuid,
 }
@@ -19,11 +18,19 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::blog::Entity")]
     Blog,
+    #[sea_orm(has_many = "super::session::Entity")]
+    Session,
 }
 
 impl Related<super::blog::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Blog.def()
+    }
+}
+
+impl Related<super::session::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Session.def()
     }
 }
 

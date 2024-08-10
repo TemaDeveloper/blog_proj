@@ -6,7 +6,6 @@ use uuid::Uuid;
 pub struct UserModel{
     pub name : String, 
     pub email : String, 
-    pub password : String, 
     pub uuid : Uuid, 
 }
 
@@ -28,12 +27,7 @@ pub struct GetAllUsersModel{
 pub struct CreateUserModel{
     pub name : String, 
     pub email : String, 
-    pub password : String,
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct LoginUserModel{
-    pub email : String, 
-    pub password : String,
-}
+
 

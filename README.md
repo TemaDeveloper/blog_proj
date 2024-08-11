@@ -1,4 +1,6 @@
-This is a Rust project that is used Axum framework
+### Auth System Oauth2 implementation with Rust (Axum)
+-----
+This is a Rust project that is used Axum framework and Sea-Orm
 Modern approach of building auth system, using Oauth2 and Google Authorization Services.
 Authentication workflow: 
 
@@ -8,8 +10,8 @@ Authentication workflow:
 
  - Using the access_token, client gets user information from two scopes
 
-/userinfo.profile
-/userinfo.email
+**/userinfo.profile**<br />
+**/userinfo.email**
 
  - Client gets email from the Database and compare it to the one that it gets from the Resource Server
  - If two emails match => create a new session in DB and store session_id in cookie

@@ -1,5 +1,5 @@
-### Auth System Oauth2 implementation with Rust (Axum)
------
+# Auth System Oauth2 implementation with Rust (Axum)
+
 This is a Rust project that is used Axum framework and Sea-Orm
 Modern approach of building auth system, using Oauth2 and Google Authorization Services.
 Authentication workflow: 

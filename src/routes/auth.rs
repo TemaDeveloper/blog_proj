@@ -133,7 +133,6 @@ async fn redirect_auth(
         match token_result {
             Ok(token) => {
                 let access_token = token.access_token().secret();
-                //let refresh_token = token.refresh_token().unwrap().secret();
 
                 // Use Bearer token in the Authorization header
                 let url = "https://www.googleapis.com/oauth2/v2/userinfo?oauth_token=".to_owned()
@@ -225,16 +224,16 @@ async fn redirect_auth(
                                     ),
                                 )
                                 .body(Body::from(
-                                    r#"
-                            <html>
-                            <head>
-                                <meta http-equiv="refresh" content="0; url=/dashboard" />
-                            </head>
-                            <body>
-                                User authenticated. Redirecting...
-                            </body>
-                            </html>
-                        "#,
+                                            r#"
+                                    <html>
+                                    <head>
+                                        <meta http-equiv="refresh" content="0; url=/dashboard" />
+                                    </head>
+                                    <body>
+                                        User authenticated. Redirecting...
+                                    </body>
+                                    </html>
+                                "#,
                                 ))
                                 .unwrap()
                                 .into_response()

@@ -43,10 +43,10 @@ pub fn auth_user_routes(db: Arc<DatabaseConnection>) -> Router {
 async fn dashboard() -> impl IntoResponse {
     Html(
         r#"
-    <form action="http://localhost:3010/logout">
-        <input type="submit" value="Logout" />
-    </form>
-"#
+            <form action="http://localhost:3010/logout">
+                <input type="submit" value="Logout" />
+            </form>
+        "#
         .to_string(),
     )
     .into_response()

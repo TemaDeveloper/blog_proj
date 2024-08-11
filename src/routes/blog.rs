@@ -127,9 +127,6 @@ async fn update_blog(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     Json(blog_data): Json<UpdateBlogModel>,
 ) -> impl IntoResponse {
-    //dotenv().ok();
-    //let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    //let db_conn = Database::connect(&db_url).await.unwrap();
 
     let mut blog: entity::blog::ActiveModel = entity::blog::Entity::find()
         .filter(entity::blog::Column::Id.eq(id))
@@ -151,7 +148,6 @@ async fn create_blog(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     blog_data: Json<CreateBlogModel>,
 ) -> impl IntoResponse {
-    //* Refactored :) */
     // if the user's id (PRIMARY KEY) == user_id that is given as argument => insert the new blog
     // Check if user exists
     match user::Entity::find()

@@ -5,8 +5,7 @@ use axum::response::{Html, Redirect};
 use axum::routing::get;
 use axum::Extension;
 use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
+    response::IntoResponse,
     Router,
 };
 
@@ -21,6 +20,9 @@ use oauth2::{
     basic::BasicClient, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl,
     Scope, TokenResponse, TokenUrl,
 };
+
+use tower_cookies::cookie::SameSite;
+use tower_cookies::{Cookie, Cookies};
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
@@ -29,6 +31,7 @@ use uuid::Uuid;
 
 pub fn auth_user_routes(db: Arc<DatabaseConnection>) -> Router {
     let oauth_client = create_oauth_client();
+
     Router::new()
         .route("/auth", get(auth))
         .route("/redirect", get(redirect_auth))
@@ -37,19 +40,68 @@ pub fn auth_user_routes(db: Arc<DatabaseConnection>) -> Router {
         .route("/logout", get(logout))
         .layer(Extension(oauth_client))
         .layer(Extension(db))
+        
 
 }
 
-async fn dashboard() -> impl IntoResponse {
-    Html(
+async fn dashboard(
+    cookie_header: Option<TypedHeader<headers::Cookie>>,
+    Extension(db): Extension<Arc<DatabaseConnection>>,
+) -> impl IntoResponse {
+
+    let mut name = "".to_string();
+    let mut email = "".to_string(); 
+
+    //Take the existing session from the cookie 
+    if let Some(TypedHeader(ref cookie)) = cookie_header {
+        //Find the session_id in session table 
+        if let Some(session_id) = cookie.get("session_id") {
+            // Attempt to convert the session_id to a UUID
+            let session_uuid = match Uuid::parse_str(session_id) {
+                Ok(uuid) => uuid,
+                Err(err) => {
+                    println!("Failed to parse session_id as UUID: {}", err);
+                    return Html("Invalid session ID format.".to_string()).into_response();
+                }
+            };
+
+            // Query the database for the session
+            //Get the user_id from the session table 
+            let session_query = entity::session::Entity::find()
+                .filter(entity::session::Column::SessionId.eq(session_uuid))
+                .one(db.as_ref())
+                .await;
+
+            if let Ok(Some(session)) = session_query {
+                println!("Session found in database: {:?}", session);
+
+                //Select the user
+                //Compare the existing user_id from the session to id in user table 
+                let user_query = entity::user::Entity::find()
+                    .filter(entity::user::Column::Id.eq(session.user_id))
+                    .one(db.as_ref())
+                    .await
+                    .unwrap()
+                    .unwrap();
+
+                name = user_query.name;
+                email = user_query.email;
+
+            } 
+        } 
+    }
+
+    Html(format!(
         r#"
+            <h1>User info : <br> name - {}, <br> email - {}</h1>
             <form action="http://localhost:3010/logout">
                 <input type="submit" value="Logout" />
             </form>
-        "#
+        "#, name, email)
         .to_string(),
     )
     .into_response()
+
 }
 
 async fn auth(
@@ -106,6 +158,7 @@ async fn redirect_auth(
     Query(params): Query<HashMap<String, String>>,
     Extension(oauth_client): Extension<Arc<Mutex<BasicClient>>>,
     Extension(db): Extension<Arc<DatabaseConnection>>,
+    cookies : Cookies
 ) -> impl IntoResponse {
 
     // Extract CSRF token (state parameter) from the OAuth provider response
@@ -197,46 +250,28 @@ async fn redirect_auth(
                                 .expect("Failed to insert session");
 
                             //add session_id to Cookies
-                            let mut headers = HeaderMap::new();
-                            headers.insert(
-                                header::SET_COOKIE,
-                                format!(
-                                    "session_id={}; HttpOnly; Secure; SameSite=Strict",
-                                    session_id
-                                )
-                                .parse()
-                                .unwrap(),
-                            );
-                            // Include the Authorization header with the Bearer token
-                            headers.insert(
-                                header::AUTHORIZATION,
-                                format!("Bearer {}", session_id).parse().unwrap(),
-                            );
 
-                            Response::builder()
-                                .status(StatusCode::OK)
-                                .header(header::AUTHORIZATION, format!("Bearer {}", session_id))
-                                .header(
-                                    header::SET_COOKIE,
-                                    format!(
-                                        "session_id={}; HttpOnly; Secure; SameSite=Strict",
-                                        session_id
-                                    ),
-                                )
-                                .body(Body::from(
-                                            r#"
-                                    <html>
-                                    <head>
-                                        <meta http-equiv="refresh" content="0; url=/dashboard" />
-                                    </head>
-                                    <body>
-                                        User authenticated. Redirecting...
-                                    </body>
-                                    </html>
-                                "#,
-                                ))
-                                .unwrap()
-                                .into_response()
+                            let mut cookie = Cookie::new("session_id", session_id.to_string());
+                            cookie.set_http_only(true);
+                            cookie.set_path("/");
+                            cookie.set_secure(true);
+                            cookie.set_same_site(SameSite::Strict);
+                            cookies.add(cookie);
+
+                            let body = Body::from(
+                                         r#"
+                                             <html>
+                                             <head>
+                                                 <meta http-equiv="refresh" content="0; url=/dashboard" />
+                                             </head>
+                                             <body>
+                                                 User authenticated. Redirecting...
+                                             </body>
+                                             </html>
+                                         "#,
+                                     ).into_response();
+                            body
+
                         }
                         Ok(None) => Html("User not found".to_string()).into_response(),
                         Err(err) => {

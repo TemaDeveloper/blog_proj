@@ -23,5 +23,12 @@ fast_image_resize = "4.2.1"
 oauth2 = "4.4.2"
 reqwest = { version = "0.12.5", features = ["json"] }
 axum-extra = { version = "0.9.3", features = ["cookie", "typed-header"] }
+http = "1.1.0"
+tower-cookies = "0.10.0"
 
+
+
+[dev-dependencies]
+anyhow = "1.0.86"
+httpc-test = "0.1.10"
 

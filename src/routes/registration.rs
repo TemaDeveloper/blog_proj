@@ -1,17 +1,24 @@
 use std::{collections::HashMap, sync::Arc};
 
 use axum::{
-    body::Body, extract::Query, response::{Html, IntoResponse, Redirect}, routing::get, Extension, Router
+    body::Body,
+    extract::Query,
+    response::{Html, IntoResponse, Redirect},
+    routing::get,
+    Extension, Router,
 };
 use chrono::{Duration, Utc};
 use entity::user;
-use migration::sea_orm::{DatabaseConnection, EntityTrait, Set};
-use oauth2::{basic::BasicClient, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl, Scope, TokenResponse, TokenUrl};
+use migration::sea_orm::ColumnTrait;
+use migration::sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, Set};
+use oauth2::{
+    basic::BasicClient, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl,
+    Scope, TokenResponse, TokenUrl,
+};
+use std::env;
 use tokio::sync::Mutex;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies};
 use uuid::Uuid;
-use std::env;
-
 
 pub fn register_routing(db: Arc<DatabaseConnection>) -> Router {
     let oauth_client = create_oauth_client();
@@ -22,7 +29,6 @@ pub fn register_routing(db: Arc<DatabaseConnection>) -> Router {
         .layer(Extension(oauth_client))
         .layer(Extension(db))
 }
-
 
 async fn auth_registration(
     Extension(oauth_client): Extension<Arc<Mutex<BasicClient>>>,
@@ -62,7 +68,7 @@ fn create_oauth_client() -> Arc<Mutex<BasicClient>> {
 }
 
 pub async fn redirect_sign_on(
-    //TODO: Handle the error, if email already exists 
+    //TODO: Handle the error, if email already exists
     Query(params): Query<HashMap<String, String>>,
     Extension(oauth_client): Extension<Arc<Mutex<BasicClient>>>,
     Extension(db): Extension<Arc<DatabaseConnection>>,
@@ -120,43 +126,54 @@ pub async fn redirect_sign_on(
                 let name_resource_server = body["name"].as_str().unwrap();
                 let email_resource_server = body["email"].as_str().unwrap();
 
-                let user_model = user::ActiveModel {
-                    name: Set(name_resource_server.to_string()),
-                    email: Set(email_resource_server.to_string()),
-                    uuid: Set(Uuid::new_v4()),
-                    ..Default::default()
-                };
-            
-                user::Entity::insert(user_model.clone())
-                    .exec(db.as_ref())
+                let user_db = entity::user::Entity::find()
+                    .filter(user::Column::Email.eq(email_resource_server.to_string()))
+                    .one(db.as_ref())
                     .await
+                    .unwrap()
                     .unwrap();
 
-                let new_session = entity::session::ActiveModel {
-                    session_id: Set(session_id.clone()),
-                    user_id: Set(user_model.uuid.unwrap()),
-                    access_token: Set(access_token.clone()),
-                    refresh_token: Set("".to_string()),
-                    expires_at: Set(expires_at_val.into()),
-                    csfr_token: Set(state_param.unwrap_or_else(|| "".to_string())), // Store the CSRF token in the session
-                    ..Default::default()
-                };
+                if user_db.email == email_resource_server {
+                    println!("User is already exist in DB, redirect to log in");
+                    Redirect::temporary("http://localhost:3010/auth").into_response()
+                } else {
+                    let user_model = user::ActiveModel {
+                        name: Set(name_resource_server.to_string()),
+                        email: Set(email_resource_server.to_string()),
+                        uuid: Set(Uuid::new_v4()),
+                        ..Default::default()
+                    };
 
-                entity::session::Entity::insert(new_session)
-                    .exec(db.as_ref())
-                    .await
-                    .expect("Failed to insert session");
+                    user::Entity::insert(user_model.clone())
+                        .exec(db.as_ref())
+                        .await
+                        .unwrap();
 
-                //add session_id to Cookies
+                    let new_session = entity::session::ActiveModel {
+                        session_id: Set(session_id.clone()),
+                        user_id: Set(user_model.uuid.unwrap()),
+                        access_token: Set(access_token.clone()),
+                        refresh_token: Set("".to_string()),
+                        expires_at: Set(expires_at_val.into()),
+                        csfr_token: Set(state_param.unwrap_or_else(|| "".to_string())), // Store the CSRF token in the session
+                        ..Default::default()
+                    };
 
-                let mut cookie = Cookie::new("session_id", session_id.to_string());
-                cookie.set_http_only(true);
-                cookie.set_path("/");
-                cookie.set_secure(true);
-                cookie.set_same_site(SameSite::Strict);
-                cookies.add(cookie);
+                    entity::session::Entity::insert(new_session)
+                        .exec(db.as_ref())
+                        .await
+                        .expect("Failed to insert session");
 
-                let body = Body::from(
+                    //add session_id to Cookies
+
+                    let mut cookie = Cookie::new("session_id", session_id.to_string());
+                    cookie.set_http_only(true);
+                    cookie.set_path("/");
+                    cookie.set_secure(true);
+                    cookie.set_same_site(SameSite::Strict);
+                    cookies.add(cookie);
+
+                    let body = Body::from(
                                           r#"
                                               <html>
                                               <head>
@@ -168,7 +185,8 @@ pub async fn redirect_sign_on(
                                               </html>
                                           "#,
                                       ).into_response();
-                body
+                    body
+                }
             }
             Err(err) => Html(format!("Database query failed: {:?}", err)).into_response(),
         }

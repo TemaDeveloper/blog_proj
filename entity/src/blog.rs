@@ -11,7 +11,7 @@ pub struct Model {
     pub content: String,
     pub image: String,
     pub created_at: DateTimeWithTimeZone,
-    pub user_id: i32,
+    pub user_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -19,7 +19,7 @@ pub enum Relation {
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::UserId",
-        to = "super::user::Column::Id",
+        to = "super::user::Column::Uuid",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]

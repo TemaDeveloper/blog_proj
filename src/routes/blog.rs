@@ -10,6 +10,7 @@ use axum::{
 use entity::{blog, user};
 use migration::sea_orm::ColumnTrait;
 use migration::sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, Set};
+use uuid::Uuid;
 use std::sync::Arc;
 
 pub fn blog_routes(db: Arc<DatabaseConnection>) -> Router {
@@ -24,7 +25,7 @@ pub fn blog_routes(db: Arc<DatabaseConnection>) -> Router {
 }
 
 async fn get_all_user_blogs(
-    Path(id): Path<i32>,
+    Path(id): Path<Uuid>,
     Extension(db): Extension<Arc<DatabaseConnection>>,
 ) -> impl IntoResponse {
     let blogs = entity::blog::Entity::find()
@@ -151,7 +152,7 @@ async fn create_blog(
     // if the user's id (PRIMARY KEY) == user_id that is given as argument => insert the new blog
     // Check if user exists
     match user::Entity::find()
-        .filter(user::Column::Id.eq(blog_data.user_id))
+        .filter(user::Column::Uuid.eq(blog_data.user_id))
         .one(db.as_ref())
         .await
     {

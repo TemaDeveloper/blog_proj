@@ -19,7 +19,7 @@ pub struct UpdateUserModel{
 pub struct GetUserModel{
     pub name : String, 
     pub email : String, 
-    pub id : i32,
+    pub uuid : Uuid,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -33,10 +33,11 @@ pub struct GetAllUsersModel{
     pub users : Vec<UserModelPub>
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct CreateUserModel{
     pub name : String, 
     pub email : String, 
+    pub password : String,
 }
 
 

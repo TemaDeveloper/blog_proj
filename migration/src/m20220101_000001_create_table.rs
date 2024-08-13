@@ -12,16 +12,10 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(User::Table)
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(User::Id)
-                            .integer()
-                            .not_null()
-                            .auto_increment()
-                            .primary_key(),
-                    )
                     .col(ColumnDef::new(User::Name).string().not_null())
                     .col(ColumnDef::new(User::Email).unique_key().string().not_null())
-                    .col(ColumnDef::new(User::Uuid).uuid().unique_key().not_null())
+                    .col(ColumnDef::new(User::Uuid).uuid().unique_key().not_null().primary_key())
+                    .col(ColumnDef::new(User::Password).string().not_null())
                     .to_owned(),
             )
             .await
@@ -38,8 +32,8 @@ impl MigrationTrait for Migration {
 #[derive(DeriveIden)]
 enum User {
     Table,
-    Id,
     Email,
     Name,
     Uuid,
+    Password
 }

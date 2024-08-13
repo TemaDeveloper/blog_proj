@@ -1,12 +1,13 @@
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct CreateBlogModel{
     pub title : String, 
     pub content : String, 
-    pub user_id : i32,
+    pub user_id : Uuid,
 }
 
 
@@ -20,7 +21,7 @@ pub struct UpdateBlogModel{
 pub struct GetBlogModel{
     pub title : String, 
     pub content : String, 
-    pub user_id : i32,
+    pub user_id : Uuid,
     pub created_at : DateTime<FixedOffset>,
 }
 

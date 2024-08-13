@@ -3,6 +3,7 @@ use std::sync::Arc;
 use auth::auth_user_routes;
 use axum::{routing::get_service, Router};
 use migration::sea_orm::DatabaseConnection;
+use registration::register_routing;
 use tower_cookies::CookieManagerLayer;
 use tower_http::{cors::{AllowHeaders, CorsLayer}, services::ServeDir};
 use http::{HeaderValue, Method};
@@ -10,6 +11,7 @@ use http::{HeaderValue, Method};
 pub mod user;
 pub mod blog;
 pub mod auth;
+pub mod registration;
 pub mod middlewares;
 
 pub fn create_all_routes(db: Arc<DatabaseConnection>) -> Router {
@@ -25,6 +27,7 @@ pub fn create_all_routes(db: Arc<DatabaseConnection>) -> Router {
 
     Router::new()
         .merge(auth_user_routes(db.clone()))
+        .merge(register_routing(db.clone()))
         .merge(user::user_routes(db.clone()))
         .merge(blog::blog_routes(db))
         .layer(cors)

@@ -27,12 +27,12 @@ impl MigrationTrait for Migration {
                         .not_null()
                         .default(Expr::current_timestamp()),
                     )
-                    .col(ColumnDef::new(Blog::UserId).integer().not_null())
+                    .col(ColumnDef::new(Blog::UserId).uuid().not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk-blog-user_id")
                             .from(Blog::Table, Blog::UserId)
-                            .to(User::Table, User::Id)
+                            .to(User::Table, User::Uuid)
                     )
                     .to_owned(),
             )
@@ -62,5 +62,5 @@ enum Blog {
 #[derive(Iden)]
 enum User {
     Table,
-    Id,
+    Uuid,
 }

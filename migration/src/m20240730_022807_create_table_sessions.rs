@@ -24,11 +24,11 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Session::Data).string())
                     .col(ColumnDef::new(Session::ExpiresAt).timestamp_with_time_zone().not_null())
                     .col(ColumnDef::new(Session::CSFRToken).string().unique_key().not_null())
-                    .col(ColumnDef::new(Session::UserID).integer().not_null()).foreign_key(
+                    .col(ColumnDef::new(Session::UserID).uuid().not_null()).foreign_key(
                         ForeignKey::create()
                             .name("fk-session-user_id")
                             .from(Session::Table, Session::UserID)
-                            .to(User::Table, User::Id)
+                            .to(User::Table, User::Uuid)
                     )
                     .to_owned(),
             )
@@ -58,5 +58,5 @@ enum Session {
 #[derive(Iden)]
 enum User {
     Table,
-    Id,
+    Uuid,
 }

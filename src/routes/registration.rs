@@ -20,6 +20,7 @@ use tokio::sync::Mutex;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies};
 use uuid::Uuid;
 
+
 pub fn register_routing(db: Arc<DatabaseConnection>) -> Router {
     let oauth_client = create_oauth_client();
 
@@ -68,7 +69,6 @@ fn create_oauth_client() -> Arc<Mutex<BasicClient>> {
 }
 
 pub async fn redirect_sign_on(
-    //TODO: Handle the error, if email already exists
     Query(params): Query<HashMap<String, String>>,
     Extension(oauth_client): Extension<Arc<Mutex<BasicClient>>>,
     Extension(db): Extension<Arc<DatabaseConnection>>,
@@ -134,8 +134,8 @@ pub async fn redirect_sign_on(
                     .unwrap();
 
                 if user_db.email == email_resource_server {
-                    println!("User is already exist in DB, redirect to log in");
-                    Redirect::temporary("http://localhost:3010/auth").into_response()
+                    println!("User is already exist in DB, redirect to log in page");
+                    Redirect::temporary("http://localhost:3010/login").into_response()
                 } else {
                     let user_model = user::ActiveModel {
                         name: Set(name_resource_server.to_string()),

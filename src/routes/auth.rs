@@ -41,28 +41,15 @@ pub fn auth_user_routes(db: Arc<DatabaseConnection>) -> Router {
 
 async fn login() -> impl IntoResponse {
     Html(
-        r#"
-            <form action="/user/insert" method="post">
-                <label for="username">Username:</label>
-                <input type="text" id="username" name="name" required><br><br>
+       r#"
+           <form action="http://localhost:3010/auth_sign_on">
+               <input type="submit" value="Sign Up With Google" />
+           </form>
 
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" required><br><br>
-
-                <label for="password">Password:</label>
-                <input type="text" id="password" name="password" required><br><br>
-
-                <button type="submit">Sign on with credentials</button>
-            </form>
-
-            <form action="http://localhost:3010/auth_sign_on">
-                <input type="submit" value="Sign Up With Google" />
-            </form>
-
-            <form action="http://localhost:3010/auth">
-                <input type="submit" value="Login With Google" />
-            </form>
-        "#,
+           <form action="http://localhost:3010/auth">
+               <input type="submit" value="Login With Google" />
+           </form>
+       "#,
     )
 }
 
@@ -201,7 +188,6 @@ async fn redirect_auth(
             Ok(token) => {
                 let access_token = token.access_token().secret();
 
-                // Use Bearer token in the Authorization header
                 let url = "https://www.googleapis.com/oauth2/v2/userinfo?oauth_token=".to_owned()
                     + access_token;
 

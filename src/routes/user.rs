@@ -1,28 +1,24 @@
 use crate::models;
-use crate::models::user_models::{GetUserModel, UpdateUserModel};
-use axum::body::Body;
+use crate::models::user_models::{CreateUserModel, GetUserModel, UpdateUserModel};
 use axum::extract::Path;
-use axum::response::Redirect;
-use axum::routing::{get, put};
-use axum::{http::StatusCode, response::IntoResponse, routing::post, Json, Router};
-use axum::{Extension, Form};
+use axum::routing::{get, post, put};
+use axum::{http::StatusCode, response::IntoResponse, Json, Router};
+use axum::Extension;
 use entity::user;
 use migration::sea_orm::ColumnTrait;
 use migration::sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, Set};
-use models::user_models::{CreateUserModel, GetAllUsersModel, UserModelPub};
+use models::user_models::{GetAllUsersModel, UserModelPub};
 use std::sync::Arc;
-use tower_cookies::cookie::SameSite;
-use tower_cookies::{Cookie, Cookies};
 use uuid::Uuid;
 
 pub fn user_routes(db: Arc<DatabaseConnection>) -> Router {
     Router::new()
         .route("/users", get(get_all_users))
-        .route("/user/insert", post(sign_on_by_credentials))
         .route("/privacy", get(|| async { "Privacy Policy" }))
         .route("/tos", get(|| async { "TOS" }))
         .route("/user/:id", get(get_user))
         .route("/user/update/:id", put(update_user))
+        .route("/user/insert", post(register_user))
         .layer(Extension(db))
 }
 
@@ -86,77 +82,29 @@ async fn update_user(
     (StatusCode::ACCEPTED, "Updated")
 }
 
-//TODO: Add Password encoding and email verification
-
-async fn sign_on_by_credentials(
+async fn register_user(
     Extension(db): Extension<Arc<DatabaseConnection>>,
-    cookies: Cookies,
-    user_data: Form<CreateUserModel>,
+    user_data : Json<CreateUserModel>,
 ) -> impl IntoResponse {
-    let user_db = entity::user::Entity::find()
-        .filter(user::Column::Email.eq(user_data.email.to_string()))
-        .one(db.as_ref())
-        .await
-        .unwrap()
-        .unwrap();
 
-    if user_db.email == user_data.email.to_string() {
-        println!("User is already exist in DB, redirect to log in");
-        Redirect::temporary("http://localhost:3010/auth").into_response()
-    } else {
-        let user_model = user::ActiveModel {
-            name: Set(user_data.name.to_owned()),
-            email: Set(user_data.email.to_owned()),
-            password: Set(user_data.password.to_owned()),
-            uuid: Set(Uuid::new_v4()),
-            ..Default::default()
-        };
+    let user_id = Uuid::new_v4();
 
-        let session_id = Uuid::new_v4();
+    let user_model = entity::user::ActiveModel{
+        name: Set(user_data.name.to_owned()),
+        email: Set(user_data.email.to_owned()),
+        uuid: Set(user_id),
+        password: Set(user_data.password.to_owned()),
+    };
+        
+    let new_user = entity::user::Entity::insert(user_model)
+        .exec(db.as_ref())
+        .await;
 
-        let mut cookie = Cookie::new("session_id", session_id.to_string());
-        cookie.set_http_only(true);
-        cookie.set_path("/");
-        cookie.set_secure(true);
-        cookie.set_same_site(SameSite::Strict);
-        cookies.add(cookie);
-
-        // let new_session = entity::session::ActiveModel {
-        //     session_id: Set(session_id.clone()),
-        //     user_id: Set(user_model.uuid.unwrap()),
-        //     access_token: Set(access_token.clone()),
-        //     refresh_token: Set("".to_string()),
-        //     expires_at: Set(expires_at_val.into()),
-        //     csfr_token: Set(state_param.unwrap_or_else(|| "".to_string())), // Store the CSRF token in the session
-        //     ..Default::default()
-        // };
-
-        // entity::session::Entity::insert(new_session)
-        //     .exec(db.as_ref())
-        //     .await
-        //     .expect("Failed to insert session");
-
-        user::Entity::insert(user_model.clone())
-            .exec(db.as_ref())
-            .await
-            .unwrap();
-
-        let body = Body::from(
-            r#"
-                <html>
-                <head>
-                    <meta http-equiv="refresh" content="0; url=/dashboard" />
-                </head>
-                <body>
-                    User authenticated. Redirecting...
-                </body>
-                </html>
-            "#,
-        )
-        .into_response();
-
-        body
+    match new_user {
+        Ok(user) => (StatusCode::CREATED, format!("User was created successfully - > user : {:?}", user)), 
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, format!("The error occured! :("))
     }
+
 }
 
 //TODO: Upload Image

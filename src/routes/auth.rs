@@ -26,6 +26,8 @@ use tower_cookies::cookie::SameSite;
 use tower_cookies::{Cookie, Cookies};
 use uuid::Uuid;
 
+use super::middlewares::user_expired;
+
 pub fn auth_user_routes(db: Arc<DatabaseConnection>) -> Router {
     let oauth_client = create_oauth_client();
 
@@ -35,8 +37,10 @@ pub fn auth_user_routes(db: Arc<DatabaseConnection>) -> Router {
         .route("/dashboard", get(dashboard))
         .route("/login", get(login))
         .route("/logout", get(logout))
+        .layer(axum::middleware::from_fn(user_expired))
         .layer(Extension(oauth_client))
         .layer(Extension(db))
+
 }
 
 async fn login() -> impl IntoResponse {

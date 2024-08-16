@@ -32,8 +32,7 @@ pub fn create_all_routes(db: Arc<DatabaseConnection>) -> Router {
         .merge(blog::blog_routes(db))
         .layer(cors)
         .layer(CookieManagerLayer::new())
-        .fallback_service(routes_static())
-        
+        .fallback_service(routes_static())       
 }
 
 fn routes_static() -> Router {

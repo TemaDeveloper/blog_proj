@@ -9,8 +9,7 @@ use axum::{
 };
 use chrono::{Duration, Utc};
 use entity::user;
-use migration::sea_orm::ColumnTrait;
-use migration::sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, Set};
+use migration::sea_orm::{DatabaseConnection, EntityTrait, Set};
 use oauth2::{
     basic::BasicClient, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, RedirectUrl,
     Scope, TokenResponse, TokenUrl,
@@ -128,17 +127,7 @@ pub async fn redirect_sign_on(
                 let name_resource_server = body["name"].as_str().unwrap();
                 let email_resource_server = body["email"].as_str().unwrap();
 
-                let user_db = entity::user::Entity::find()
-                    .filter(user::Column::Email.eq(email_resource_server.to_string()))
-                    .one(db.as_ref())
-                    .await
-                    .unwrap()
-                    .unwrap();
 
-                if user_db.email == email_resource_server {
-                    println!("User is already exist in DB, redirect to log in page");
-                    Redirect::temporary("http://localhost:3010/login").into_response()
-                } else {
                     let user_model = user::ActiveModel {
                         name: Set(name_resource_server.to_string()),
                         email: Set(email_resource_server.to_string()),
@@ -191,7 +180,7 @@ pub async fn redirect_sign_on(
                                           "#,
                                       ).into_response();
                     body
-                }
+                
             }
             Err(err) => Html(format!("Database query failed: {:?}", err)).into_response(),
         }

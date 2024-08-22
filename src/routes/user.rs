@@ -93,7 +93,6 @@ async fn register_user(
         name: Set(user_data.name.to_owned()),
         email: Set(user_data.email.to_owned()),
         uuid: Set(user_id),
-        password: Set(user_data.password.to_owned()),
     };
         
     let new_user = entity::user::Entity::insert(user_model)

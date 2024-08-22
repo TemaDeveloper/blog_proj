@@ -27,7 +27,6 @@ use tower_cookies::cookie::SameSite;
 use tower_cookies::{Cookie, Cookies};
 use uuid::Uuid;
 
-
 use super::middlewares::user_expired;
 
 pub fn auth_user_routes(db: Arc<DatabaseConnection>) -> Router {
@@ -58,6 +57,7 @@ async fn login() -> impl IntoResponse {
        "#,
     )
 }
+
 
 async fn dashboard(
     cookie_header: Option<TypedHeader<headers::Cookie>>,

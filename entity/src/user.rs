@@ -10,7 +10,6 @@ pub struct Model {
     pub email: String,
     #[sea_orm(primary_key, auto_increment = false)]
     pub uuid: Uuid,
-    pub password: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

@@ -31,7 +31,7 @@ Run Project:
 cargo watch -q -c -w src/ -x run
 ```
 
-##Redis
+## Redis
 
 Session storage made to increase the performance of the app in order to find session of the user
 quickly and proceed only after it was found. 

@@ -1,5 +1,7 @@
 # OAuth2 Authentication with Rust (Axum Framework)
 
+![Rust](https://img.shields.io/badge/language-Rust-orange.svg)
+
 This Rust project utilizes the Axum framework and Sea-ORM for building a modern, secure, and efficient authentication system. The system integrates OAuth2 and Google Authorization Services to manage user authentication.
 
 ## Authentication Workflow

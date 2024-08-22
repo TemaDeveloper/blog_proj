@@ -1,3 +1,4 @@
+use crate::redis_manager::session_setting::{get_session_id, set_session_id};
 use axum::body::Body;
 use axum::extract::Query;
 use axum::http::HeaderMap;
@@ -25,6 +26,7 @@ use tokio::sync::Mutex;
 use tower_cookies::cookie::SameSite;
 use tower_cookies::{Cookie, Cookies};
 use uuid::Uuid;
+
 
 use super::middlewares::user_expired;
 
@@ -69,6 +71,14 @@ async fn dashboard(
         //Find the session_id in session table
         if let Some(session_id) = cookie.get("session_id") {
             // Attempt to convert the session_id to a UUID
+
+            if get_session_id(session_id.to_string()).await.unwrap_or(false) {
+                println!("Session exists");
+            } else {
+                println!("Session does not exist");
+                return Redirect::temporary("/login").into_response();
+            }
+
             let session_uuid = match Uuid::parse_str(session_id) {
                 Ok(uuid) => uuid,
                 Err(err) => {
@@ -171,6 +181,7 @@ async fn redirect_auth(
     Extension(db): Extension<Arc<DatabaseConnection>>,
     cookies: Cookies,
 ) -> impl IntoResponse {
+
     let state_param = params.get("state").map(|s| s.to_string());
 
     if let Some(ref state_param) = state_param {
@@ -226,10 +237,9 @@ async fn redirect_auth(
                         return Html("Email is not verified.".to_string()).into_response();
                     }
 
-                    let query = entity::user::Entity::find()
-                        .filter(entity::user::Column::Email.eq(email.clone()))
-                        .one(db.as_ref())
-                        .await;
+                    let query = entity::user::Entity::find().filter(entity::user::Column::Email.eq(email.clone()))
+                    .one(db.as_ref())
+                    .await;
 
                     match query {
                         Ok(Some(user)) => {
@@ -241,12 +251,15 @@ async fn redirect_auth(
                             let new_session = entity::session::ActiveModel {
                                 session_id: Set(session_id.clone()),
                                 user_id: Set(user.uuid),
-                                access_token: Set(access_token.clone()),
-                                refresh_token: Set("".to_string()),
                                 expires_at: Set(expires_at_val.into()),
                                 csfr_token: Set(state_param.unwrap_or_else(|| "".to_string())), // Store the CSRF token in the session
                                 ..Default::default()
                             };
+
+                            match set_session_id(session_id.to_string()).await {
+                                Ok(_) => println!("The session_id was stored in redis"), 
+                                Err(_) => eprintln!("The error occured in storing session_id into redis"),
+                            }
 
                             entity::session::Entity::insert(new_session)
                                 .exec(db.as_ref())

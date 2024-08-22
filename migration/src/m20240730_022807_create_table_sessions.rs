@@ -19,8 +19,6 @@ impl MigrationTrait for Migration {
                             .unique_key()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Session::AccessToken).unique_key().string().not_null())
-                    .col(ColumnDef::new(Session::RefreshToken).string().not_null())
                     .col(ColumnDef::new(Session::Data).string())
                     .col(ColumnDef::new(Session::ExpiresAt).timestamp_with_time_zone().not_null())
                     .col(ColumnDef::new(Session::CSFRToken).string().unique_key().not_null())
@@ -47,8 +45,6 @@ impl MigrationTrait for Migration {
 enum Session {
     Table,
     SessionID,
-    RefreshToken,
-    AccessToken,
     ExpiresAt,
     UserID,
     Data,

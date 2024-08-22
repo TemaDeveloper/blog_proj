@@ -14,6 +14,7 @@ pub mod auth;
 pub mod registration;
 pub mod middlewares;
 
+
 pub fn create_all_routes(db: Arc<DatabaseConnection>) -> Router {
 
     let cors = CorsLayer::new()

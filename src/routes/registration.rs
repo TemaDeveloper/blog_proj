@@ -20,6 +20,8 @@ use tokio::sync::Mutex;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies};
 use uuid::Uuid;
 
+use crate::redis_manager::session_setting::set_session_id;
+
 
 pub fn register_routing(db: Arc<DatabaseConnection>) -> Router {
     let oauth_client = create_oauth_client();
@@ -152,12 +154,15 @@ pub async fn redirect_sign_on(
                     let new_session = entity::session::ActiveModel {
                         session_id: Set(session_id.clone()),
                         user_id: Set(user_model.uuid.unwrap()),
-                        access_token: Set(access_token.clone()),
-                        refresh_token: Set("".to_string()),
                         expires_at: Set(expires_at_val.into()),
                         csfr_token: Set(state_param.unwrap_or_else(|| "".to_string())), // Store the CSRF token in the session
                         ..Default::default()
                     };
+
+                    match set_session_id(session_id.to_string()).await {
+                        Ok(_) => println!("The session_id was stored in redis"), 
+                        Err(_) => eprintln!("The error occured in storing session_id into redis"),
+                    }
 
                     entity::session::Entity::insert(new_session)
                         .exec(db.as_ref())

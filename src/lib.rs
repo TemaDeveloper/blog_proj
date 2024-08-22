@@ -4,6 +4,7 @@ use migration::sea_orm::DatabaseConnection;
 use tokio::net::TcpListener;
 mod routes;
 mod models;
+mod redis_manager;
 
 
 pub async fn run(db : Arc<DatabaseConnection>) {

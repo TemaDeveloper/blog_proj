@@ -13,20 +13,20 @@ axum = { version = "0.7.5", features = ["multipart"] }
 chrono = "0.4.38"
 dotenv = "0.15.0"
 sea-orm = { version = "1.0.0", features = [ "sqlx-postgres", "runtime-tokio-rustls", "macros" ] }
-serde = { version = "1.0.204", features = ["serde_derive"] }
-serde_json = "1.0.121"
-tokio = { version = "1.39.2", features = ["full"] }
+serde = { version = "1.0.208", features = ["serde_derive"] }
+serde_json = "1.0.125"
+tokio = { version = "1.39.3", features = ["full"] }
 uuid = { version = "1.10.0", features = ["v4"] }
 tower-http = { version = "0.5.2", features = ["cors", "fs"] }
 image = "0.25.2"
 fast_image_resize = "4.2.1"
 oauth2 = "4.4.2"
-reqwest = { version = "0.12.5", features = ["json"] }
+reqwest = { version = "0.12.7", features = ["json"] }
 axum-extra = { version = "0.9.3", features = ["cookie", "typed-header"] }
 http = "1.1.0"
 tower-cookies = "0.10.0"
 openidconnect = "3.5.0"
-
+redis = { version = "0.26.1", features = ["tokio-comp"] }
 
 
 [dev-dependencies]

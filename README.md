@@ -31,4 +31,13 @@ Run Project:
 cargo watch -q -c -w src/ -x run
 ```
 
+##Redis
 
+Session storage made to increase the performance of the app in order to find session of the user
+quickly and proceed only after it was found. 
+
+Each session has the expiration time in one hour. 
+
+```
+"session_id" : integer
+```

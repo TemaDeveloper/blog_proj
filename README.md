@@ -49,12 +49,12 @@ This approach ensures that user sessions are efficiently managed, improving the 
 
 ### Running the Application
 
-6. **Start Docker Services**  
-   Ensure all required services (e.g., PostgreSQL, Redis) are up and running.
-   ```bash
-   docker-compose up
-   ```
-   **Start Server**
-   ```
-   cargo watch -q -c -w src/ -x run
-   ```
+**Start Docker Services**  
+Ensure all required services (e.g., PostgreSQL, Redis) are up and running.
+```bash
+docker-compose up
+```
+**Start Server**
+```
+cargo watch -q -c -w src/ -x run
+```

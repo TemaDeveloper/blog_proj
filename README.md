@@ -1,4 +1,4 @@
-# OAuth2 Authentication with Rust (Axum Framework)
+# Pet Blog Project (Axum-Oauth2-Redis-S3)
 
 ![Rust](https://img.shields.io/badge/language-Rust-orange.svg)
 

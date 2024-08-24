@@ -2,7 +2,7 @@ use std::sync::Arc;
 use axum::{
     body::Body, 
     middleware::Next, 
-    response::{Response, IntoResponse},
+    response::{IntoResponse, Redirect, Response},
     Extension,
 };
 use migration::sea_orm::ColumnTrait;
@@ -22,7 +22,6 @@ pub async fn user_expired(
 ) -> Result<Response, StatusCode> {
     if let Some(cookie) = cookie {
         if let Some(session_id) = cookie.get("session_id") {
-            println!("cookies found");
 
             let session_id = match session_id.parse::<Uuid>() {
                 Ok(uuid) => uuid,
@@ -38,7 +37,7 @@ pub async fn user_expired(
                 .await
             {
                 Ok(Some(session)) => session,
-                Ok(None) => return Ok((StatusCode::UNAUTHORIZED, "Session not found").into_response()),
+                Ok(None) => return Ok((StatusCode::UNAUTHORIZED,  Redirect::temporary("/login")).into_response()),
                 Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
             };
 
@@ -63,7 +62,7 @@ pub async fn user_expired(
                 }
 
                 // Clear the session cookie by setting it with an expiration in the past
-                let mut response = (StatusCode::UNAUTHORIZED, "Session expired").into_response();
+                let mut response = (StatusCode::UNAUTHORIZED, Redirect::temporary("/login")).into_response();
                 let headers = response.headers_mut();
                 headers.insert(
                     header::SET_COOKIE,

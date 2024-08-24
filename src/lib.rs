@@ -14,7 +14,7 @@ pub async fn run(db : Arc<DatabaseConnection>) {
         .await
         .unwrap();
 
-    axum::serve(listener, app)
+    axum::serve(listener, app.await)
         .await
         .unwrap();
 }

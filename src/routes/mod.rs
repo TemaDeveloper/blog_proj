@@ -13,9 +13,11 @@ pub mod blog;
 pub mod auth;
 pub mod registration;
 pub mod middlewares;
+pub mod file_upload;
 
 
-pub fn create_all_routes(db: Arc<DatabaseConnection>) -> Router {
+
+pub async fn create_all_routes(db: Arc<DatabaseConnection>) -> Router {
 
     let cors = CorsLayer::new()
         .allow_methods([Method::POST, Method::GET, Method::PUT, Method::DELETE])
@@ -31,6 +33,7 @@ pub fn create_all_routes(db: Arc<DatabaseConnection>) -> Router {
         .merge(register_routing(db.clone()))
         .merge(user::user_routes(db.clone()))
         .merge(blog::blog_routes(db))
+        .merge(file_upload::upload_router().await)
         .layer(cors)
         .layer(CookieManagerLayer::new())
         .fallback_service(routes_static())       

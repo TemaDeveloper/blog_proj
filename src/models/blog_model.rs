@@ -8,6 +8,7 @@ pub struct CreateBlogModel{
     pub title : String, 
     pub content : String, 
     pub user_id : Uuid,
+    pub images : Option<Vec<String>>,
 }
 
 
@@ -23,6 +24,7 @@ pub struct GetBlogModel{
     pub content : String, 
     pub user_id : Uuid,
     pub created_at : DateTime<FixedOffset>,
+    pub images : Option<Vec<String>>,
 }
 
 #[derive(Deserialize, Serialize, Default)]

@@ -44,6 +44,7 @@ async fn get_all_user_blogs(
                         content: (*b.content).to_string(),
                         user_id: b.user_id,
                         created_at: b.created_at,
+                        images: Some(b.images.clone()).unwrap()
                     })
                     .collect(),
             }),
@@ -71,6 +72,7 @@ async fn get_all_blogs(Extension(db): Extension<Arc<DatabaseConnection>>) -> imp
                         content: (*b.content).to_string(),
                         user_id: b.user_id,
                         created_at: b.created_at,
+                        images: Some(b.images.clone()).unwrap()
                     })
                     .collect(),
             }),
@@ -97,6 +99,7 @@ async fn get_blog(
             content: blog.content,
             user_id: blog.user_id,
             created_at: blog.created_at,
+            images: Some(blog.images).unwrap(),
         }),
     )
 }
@@ -164,7 +167,7 @@ async fn create_blog(
                 title: Set(blog_data.title.to_owned()),
                 content: Set(blog_data.content.to_owned()),
                 user_id: Set(blog_data.user_id),
-                image: Set("image/file route".to_string()),
+                images: Set(Some(blog_data.images.clone()).unwrap()),
                 ..Default::default()
             };
 

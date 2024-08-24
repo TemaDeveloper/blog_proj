@@ -9,7 +9,7 @@ pub struct Model {
     pub id: i32,
     pub title: String,
     pub content: String,
-    pub image: String,
+    pub images: Option<Vec<String>>,
     pub created_at: DateTimeWithTimeZone,
     pub user_id: Uuid,
 }

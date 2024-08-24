@@ -52,6 +52,7 @@ pub async fn user_expired(
                     Ok(delete_result) => {
                         if delete_result.rows_affected > 0 {
                             println!("Session successfully deleted from the database.");
+                            Redirect::temporary("/login").into_response();
                         } else {
                             println!("No session found with the given session_id.");
                         }

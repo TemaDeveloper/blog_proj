@@ -35,7 +35,9 @@ This Rust project utilizes the Axum framework and Sea-ORM for building a modern,
    A web framework for Rust that is focused on ergonomics and modularity.
 - **OAuth2**: Version `4.4.2`  
    A complete, modern, and secure OAuth2 client library for Rust, designed to handle various OAuth2 flows and grant types.
-
+- **Redis**: Version `0.26.1`  
+- **Amazon S3**: libs => aws-config = `1.5.5` aws-sdk-s3 = `1.46.0`
+  
 ## Session Storage with Redis
 
 To enhance the performance of session management, Redis is employed for quick session retrieval and storage. Each session is associated with a unique `session_id`, which is an integer. Sessions have a one-hour expiration time, ensuring that stale sessions are automatically removed.
@@ -44,6 +46,12 @@ To enhance the performance of session management, Redis is employed for quick se
 - `"session_id" : integer`
 
 This approach ensures that user sessions are efficiently managed, improving the overall responsiveness of the application.
+
+## File Uploads using Amazon S3
+
+- **File Upload**: Supports uploading files via multipart form data.
+- **AWS S3 Integration**: Uses the AWS SDK for Rust to handle file storage on Amazon S3.
+- **Asynchronous Processing**: The application is built using asynchronous Rust to handle multiple concurrent uploads efficiently.
 
 ## Getting Started
 

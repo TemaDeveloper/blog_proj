@@ -28,6 +28,9 @@ pub async fn create_all_routes(db: Arc<DatabaseConnection>) -> Router {
             "Authorization".parse().unwrap(),
         ]));
 
+
+    //if there is gotta be more than ONE db is better to use AppState, using the Extension will cause lot of errors 
+    //the programm will not understand which db it should use, it will vary between those two 
     Router::new()
         .merge(auth_user_routes(db.clone()))
         .merge(register_routing(db.clone()))
@@ -36,6 +39,7 @@ pub async fn create_all_routes(db: Arc<DatabaseConnection>) -> Router {
         .merge(file_upload::upload_router().await)
         .layer(cors)
         .layer(CookieManagerLayer::new())
+        //.with_state(AppState::default())
         .fallback_service(routes_static())       
 }
 

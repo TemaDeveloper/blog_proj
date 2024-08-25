@@ -30,6 +30,7 @@ redis = { version = "0.26.1", features = ["tokio-comp"] }
 aws-config = "1.5.5"
 aws-sdk-s3 = "1.46.0"
 tower = "0.4.13"
+anyhow = "1.0.86"
 
 
 [dev-dependencies]

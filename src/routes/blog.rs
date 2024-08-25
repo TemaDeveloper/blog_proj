@@ -13,7 +13,7 @@ use migration::sea_orm::{DatabaseConnection, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 use std::sync::Arc;
 
-pub fn blog_routes(db: Arc<DatabaseConnection>) -> Router {
+pub fn blog_routes(db: Arc<DatabaseConnection>) -> Router</*AppState*/> {
     Router::new()
         .route("/blog/insert", post(create_blog))
         .route("/blog/update/:id", put(update_blog))
@@ -40,8 +40,8 @@ async fn get_all_user_blogs(
                 blogs: res
                     .iter()
                     .map(|b| GetBlogModel {
-                        title: (*b.title).to_string(),
-                        content: (*b.content).to_string(),
+                        title: b.title.to_string(),
+                        content: b.content.to_string(),
                         user_id: b.user_id,
                         created_at: b.created_at,
                         images: Some(b.images.clone()).unwrap()
